@@ -1,6 +1,6 @@
 <?php
 
-namespace Lens\Bundle\IdealBundle\DependencyInjection;
+namespace Lens\Bundle\ReadspeakerBundle\DependencyInjection;
 
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -16,6 +16,8 @@ class LensReadspeakerExtension extends Extension
 
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
+
+        dd($config);
 
         // $definition = $container->getDefinition('acme.social.twitter_client');
         // $definition->replaceArgument(0, $config['twitter']['client_id']);

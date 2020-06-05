@@ -1,6 +1,6 @@
 <?php
 
-namespace Lens\Bundle\IdealBundle;
+namespace Lens\Bundle\ReadspeakerBundle;
 
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
