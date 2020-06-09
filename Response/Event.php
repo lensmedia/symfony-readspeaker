@@ -1,13 +1,5 @@
 <?php
 
-// <?
-
-// time_ms":"0",
-// type":"SENT",
-// text_start":"0",
-// text_end":"19",
-// text_length":"19"
-
 namespace Lens\Bundle\ReadspeakerBundle\Response;
 
 use Lens\Bundle\ReadspeakerBundle\Exception\InvalidEventType;
