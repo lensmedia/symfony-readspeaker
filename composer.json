@@ -1,0 +1,23 @@
+{
+    "name": "impulze/symfony-readspeaker",
+    "type": "bundle",
+    "description": "Symfony Readspeaker component",
+    "homepage": "https://github.com/lensmedia/symfony-readspeaker",
+    "authors": [
+        {
+            "name": "Jenne van der Meer",
+            "email": "j.vandermeer@lensmedia.nl"
+        }
+    ],
+    "require": {
+        "php": ">=7.2.5",
+        "symfony/http-client": "^5",
+        "symfony/filesystem": "^5",
+        "symfony/serializer": "^5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Lens\\Bundle\\ReadspeakerBundle\\": ""
+        }
+    }
+}

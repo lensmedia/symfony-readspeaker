@@ -2,24 +2,32 @@
 
 namespace Lens\Bundle\ReadspeakerBundle\DependencyInjection;
 
-use Symfony\Component\Config\FileLocator;
+use Lens\Bundle\ReadspeakerBundle\Readspeaker;
+use Lens\Bundle\ReadspeakerBundle\ReadspeakerInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
+use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\DependencyInjection\Extension;
 
 class LensReadspeakerExtension extends Extension
 {
     public function load(array $configs, ContainerBuilder $container)
     {
-        $loader = new YamlFileLoader($container, new FileLocator(dirname(__DIR__).'/Resources/config'));
-        $loader->load('services.yaml');
-
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
 
-        dd($config);
+        $httpClient = new Reference('http_client');
 
-        // $definition = $container->getDefinition('acme.social.twitter_client');
-        // $definition->replaceArgument(0, $config['twitter']['client_id']);
+        $container->register(ReadspeakerInterface::class, Readspeaker::class)
+            ->setArguments([$httpClient, $config]);
+
+        foreach ($config['profiles'] as $name => $profile) {
+            $serviceName = $name.'Speaker';
+
+            $container->register($serviceName, Readspeaker::class)
+                ->setArguments([$httpClient, $config, $name])
+                ->addTag('lens.readspeaker.speaker');
+
+            $container->registerAliasForArgument($serviceName, ReadspeakerInterface::class);
+        }
     }
 }
