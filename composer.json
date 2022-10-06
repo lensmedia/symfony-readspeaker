@@ -1,5 +1,5 @@
 {
-    "name": "impulze/symfony-readspeaker",
+    "name": "lensmedia/symfony-readspeaker",
     "type": "bundle",
     "description": "Symfony Readspeaker component",
     "homepage": "https://github.com/lensmedia/symfony-readspeaker",
