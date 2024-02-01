@@ -17,25 +17,23 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
 
 class Readspeaker implements ReadspeakerInterface
 {
-    private $http;
-    private $config;
-    private $profile;
+    private string $profile;
 
-    public function __construct(HttpClientInterface $http, array $config, string $profile = null)
-    {
-        $this->http = $http;
-        $this->config = $config;
-
+    public function __construct(
+        private readonly HttpClientInterface $httpClient,
+        private readonly array $config,
+        string $profile = null,
+    ) {
         if (null !== $profile) {
-            $this->profile($profile);
+            $this->useProfile($profile);
         }
     }
 
-    public function produce(string $text, bool $ssml = false)
+    public function produce(string $text, bool $ssml = false): RedirectResponse|File
     {
         // Build query params.
         $contentIndex = $ssml ? 'ssml' : 'text';
-        $parameters = $this->profileConfig([
+        $parameters = $this->config([
             'key' => $this->config['key'],
             $contentIndex => $text,
         ]);
@@ -59,7 +57,7 @@ class Readspeaker implements ReadspeakerInterface
         }
 
         // Do the request.
-        $response = $this->http->request('POST', $this->config['endpoint'], $requestConfig);
+        $response = $this->httpClient->request('POST', $this->config['endpoint'], $requestConfig);
 
         $status = $response->getStatusCode();
         if ($status >= 400) {
@@ -70,66 +68,72 @@ class Readspeaker implements ReadspeakerInterface
             $headers = $response->getHeaders(false);
 
             return new RedirectResponse(reset($headers['location']), $status);
-        } else {
-            $tmpfname = str_replace('.tmp', '.'.$format, @tempnam(sys_get_temp_dir(), 'readspeaker_'));
-
-            $handle = fopen($tmpfname, 'w');
-            foreach ($this->http->stream($response) as $chunk) {
-                fwrite($handle, $chunk->getContent());
-            }
-
-            fclose($handle);
-
-            return new File($tmpfname);
         }
 
-        return $content;
+        $tmpfname = str_replace('.tmp', '.'.$format, @tempnam(sys_get_temp_dir(), 'readspeaker_'));
+
+        $handle = fopen($tmpfname, 'wb');
+        foreach ($this->httpClient->stream($response) as $chunk) {
+            fwrite($handle, $chunk->getContent());
+        }
+
+        fclose($handle);
+
+        return new File($tmpfname);
     }
 
-    public function statistics(DateTimeInterface $from = null, DateTimeInterface $to = null, string $lang = null, string $voice = null)
-    {
+    public function statistics(
+        DateTimeInterface $from = null,
+        DateTimeInterface $to = null,
+        string $lang = null,
+        string $voice = null
+    ): array {
         $parameters = [];
-        $parameters['from_date'] = $from ? $from->format('YYYYMMDD') : null;
-        $parameters['to_date'] = $to ? $to->format('YYYYMMDD') : null;
+        $parameters['from_date'] = $from?->format('YYYYMMDD');
+        $parameters['to_date'] = $to?->format('YYYYMMDD');
         $parameters['lang'] = $lang;
         $parameters['voice'] = $voice;
 
         $content = $this->request('statistics', $parameters)->toArray();
 
-        return array_map(function ($data) {
-            return Statistic::fromApiResponse($data);
-        }, reset($content));
+        return array_map(
+            static fn ($data) => Statistic::fromApiResponse($data),
+            reset($content),
+        );
     }
 
-    public function voiceinfo()
+    public function voiceInfo(): array
     {
         $content = $this->request('voiceinfo')->toArray();
 
-        return array_map(function ($data) {
-            return Speaker::fromApiResponse($data);
-        }, reset($content));
+        return array_map(
+            static fn ($data) => Speaker::fromApiResponse($data),
+            reset($content),
+        );
     }
 
-    public function credits()
+    public function credits(): array
     {
         $content = $this->request('credits')->toArray();
 
-        return array_map(function ($data) {
-            return Credits::fromApiResponse($data);
-        }, reset($content));
+        return array_map(
+            static fn ($data) => Credits::fromApiResponse($data),
+            reset($content),
+        );
     }
 
-    public function events(string $text, bool $ssml = false)
+    public function events(string $text, bool $ssml = false): array
     {
         $index = $ssml ? 'ssml' : 'text';
-        $parameters = $this->profileConfig([$index => $text]);
+        $parameters = $this->config([$index => $text]);
         $parameters['dictionary'] = $parameters['dictionary'] ? 'on' : 'off';
 
         $content = $this->request('events', $parameters)->toArray();
 
-        return array_map(function ($data) {
-            return Event::fromApiResponse($data);
-        }, reset($content));
+        return array_map(
+            static fn ($data) => Event::fromApiResponse($data),
+            reset($content),
+        );
     }
 
     private function request(string $command, array $parameters = []): ResponseInterface
@@ -137,7 +141,7 @@ class Readspeaker implements ReadspeakerInterface
         $parameters['command'] = $command;
         $parameters['key'] = $this->config['key'];
 
-        $response = $this->http->request('GET', $this->config['endpoint'], [
+        $response = $this->httpClient->request('GET', $this->config['endpoint'], [
             'query' => $parameters,
             'headers' => ['accept' => 'application/json'],
         ]);
@@ -157,7 +161,7 @@ class Readspeaker implements ReadspeakerInterface
         return $response;
     }
 
-    public function profile(string $profile)
+    public function useProfile(string $profile): void
     {
         if (!isset($this->config['profiles'][$profile])) {
             throw new InvalidProfileName($profile);
@@ -166,7 +170,7 @@ class Readspeaker implements ReadspeakerInterface
         $this->profile = $profile;
     }
 
-    public function get(string $index, string $profile = null)
+    public function get(string $index, string $profile = null): array|string
     {
         $profile = $profile ?? $this->profile;
 
@@ -177,18 +181,12 @@ class Readspeaker implements ReadspeakerInterface
         return $this->config['profiles'][$profile][$index];
     }
 
-    private function profileConfig(array $config = [], string $profile = null)
+    private function config(array $config = []): array
     {
-        $profile = $profile ?? $this->profile;
-
-        if (null !== $profile) {
-            if (!isset($this->config['profiles'][$profile])) {
-                throw new InvalidProfileName($profile);
-            }
-
-            $config = array_merge($this->config['profiles'][$profile], $config);
+        if (!isset($this->config['profiles'][$this->profile])) {
+            throw new InvalidProfileName($this->profile);
         }
 
-        return $config;
+        return array_merge($this->config['profiles'][$this->profile], $config);
     }
 }

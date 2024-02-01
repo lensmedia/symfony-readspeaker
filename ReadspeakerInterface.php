@@ -8,7 +8,7 @@ interface ReadspeakerInterface
 
     public function statistics();
 
-    public function voiceinfo();
+    public function voiceInfo();
 
     public function credits();
 
