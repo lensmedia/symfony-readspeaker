@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Lens\Bundle\ReadspeakerBundle\Response;
+namespace Lens\Bundle\ReadSpeakerBundle\Response;
 
 enum CreditUnitTypes: string
 {

@@ -1,8 +1,10 @@
 <?php
 
-namespace Lens\Bundle\ReadspeakerBundle;
+declare(strict_types=1);
 
-interface ReadspeakerInterface
+namespace Lens\Bundle\ReadSpeakerBundle;
+
+interface ReadSpeakerInterface
 {
     public function produce(string $text, bool $ssml = false);
 

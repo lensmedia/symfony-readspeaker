@@ -18,7 +18,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Lens\\Bundle\\ReadspeakerBundle\\": ""
+            "Lens\\Bundle\\ReadSpeakerBundle\\": "src/"
         }
     }
 }

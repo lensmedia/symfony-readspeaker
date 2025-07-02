@@ -1,28 +1,44 @@
 <?php
 
-namespace Lens\Bundle\ReadspeakerBundle;
+declare(strict_types=1);
+
+namespace Lens\Bundle\ReadSpeakerBundle;
 
 use DateTimeInterface;
-use Lens\Bundle\ReadspeakerBundle\DependencyInjection\Configuration;
-use Lens\Bundle\ReadspeakerBundle\Exception\InvalidProfileName;
-use Lens\Bundle\ReadspeakerBundle\Exception\ReadspeakerRequestException;
-use Lens\Bundle\ReadspeakerBundle\Response\Credits;
-use Lens\Bundle\ReadspeakerBundle\Response\Event;
-use Lens\Bundle\ReadspeakerBundle\Response\Speaker;
-use Lens\Bundle\ReadspeakerBundle\Response\Statistic;
+use Lens\Bundle\ReadSpeakerBundle\Exception\InvalidProfileName;
+use Lens\Bundle\ReadSpeakerBundle\Exception\ReadSpeakerRequestException;
+use Lens\Bundle\ReadSpeakerBundle\Response\Credits;
+use Lens\Bundle\ReadSpeakerBundle\Response\Event;
+use Lens\Bundle\ReadSpeakerBundle\Response\Speaker;
+use Lens\Bundle\ReadSpeakerBundle\Response\Statistic;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 
-class Readspeaker implements ReadspeakerInterface
+class ReadSpeaker implements ReadSpeakerInterface
 {
+    public const PROFILE_DEFAULTS = [
+        'appid' => 1,
+        'command' => 'produce',
+        'charset' => 'utf-8',
+        'dictionary' => true,
+        'volume' => 100,
+        'pitch' => 100,
+        'speed' => 100,
+        'audioformat' => 'mp3',
+        'container' => 'wav',
+        'samplerate' => 22050,
+        'mp3bitrate' => 48,
+        'streaming' => true,
+    ];
+
     private string $profile;
 
     public function __construct(
         private readonly HttpClientInterface $httpClient,
         private readonly array $config,
-        string $profile = null,
+        ?string $profile = null,
     ) {
         if (null !== $profile) {
             $this->useProfile($profile);
@@ -48,7 +64,7 @@ class Readspeaker implements ReadspeakerInterface
         $format = $parameters['audioformat'];
 
         // Strips defaults from the parameters.
-        $parameters = array_diff($parameters, Configuration::PROFILE_DEFAULTS);
+        $parameters = array_diff($parameters, self::PROFILE_DEFAULTS);
 
         // Build HTTP Client config.
         $requestConfig = ['body' => $parameters];
@@ -61,7 +77,7 @@ class Readspeaker implements ReadspeakerInterface
 
         $status = $response->getStatusCode();
         if ($status >= 400) {
-            throw new ReadspeakerRequestException($response->getContent(false), $status);
+            throw new ReadSpeakerRequestException($response->getContent(false), $status);
         }
 
         if ($streaming) {
@@ -83,10 +99,10 @@ class Readspeaker implements ReadspeakerInterface
     }
 
     public function statistics(
-        DateTimeInterface $from = null,
-        DateTimeInterface $to = null,
-        string $lang = null,
-        string $voice = null
+        ?DateTimeInterface $from = null,
+        ?DateTimeInterface $to = null,
+        ?string $lang = null,
+        ?string $voice = null
     ): array {
         $parameters = [];
         $parameters['from_date'] = $from?->format('YYYYMMDD');
@@ -155,7 +171,7 @@ class Readspeaker implements ReadspeakerInterface
         // 503 Temporary Busy       The service is currently busy, try again in a few seconds.
         $status = $response->getStatusCode();
         if ($status >= 400) {
-            throw new ReadspeakerRequestException($response->getContent(false), $status);
+            throw new ReadSpeakerRequestException($response->getContent(false), $status);
         }
 
         return $response;
@@ -170,7 +186,7 @@ class Readspeaker implements ReadspeakerInterface
         $this->profile = $profile;
     }
 
-    public function get(string $index, string $profile = null): array|string
+    public function get(string $index, ?string $profile = null): array|string
     {
         $profile = $profile ?? $this->profile;
 
